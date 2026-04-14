@@ -1,14 +1,15 @@
 {
-  "name": "booking-system",
+  "name": "book-my-ticket",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Book My Ticket — hackathon project with auth and seat booking",
+  "main": "index.mjs",
+  "type": "module",
   "scripts": {
     "start": "node index.mjs",
     "dev": "node --watch index.mjs"
   },
   "keywords": [],
-  "author": "",
+  "author": "Affan Khan",
   "license": "ISC",
   "dependencies": {
     "cookie-parser": "^1.4.7",

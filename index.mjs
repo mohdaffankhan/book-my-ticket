@@ -54,4 +54,15 @@ app.put(
 
 app.use(globalErrorHandler);
 
+// Keep-alive: prevents Render free tier from spinning down
+if (env.NODE_ENV !== "development" && process.env.RENDER_EXTERNAL_URL) {
+  setInterval(async () => {
+    try {
+      await fetch(process.env.RENDER_EXTERNAL_URL);
+    } catch (e) {
+      console.warn("Keep-alive ping failed:", e.message);
+    }
+  }, 10 * 60 * 1000); // every 10 minutes
+}
+
 app.listen(env.PORT, () => console.log("Server starting on port: " + env.PORT));
