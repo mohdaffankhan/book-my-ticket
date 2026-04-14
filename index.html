@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Stellar Seat Booking</title>
+    <title>ChaiCode Cinema</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @import url("https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700&display=swap");
@@ -12,67 +12,421 @@
         background-color: #0f172a;
         color: #f8fafc;
       }
+      .input-field {
+        width: 100%;
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid rgba(71, 85, 105, 0.7);
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        color: #f8fafc;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        font-family: "Outfit", sans-serif;
+      }
+      .input-field::placeholder { color: #64748b; }
+      .input-field:focus {
+        border-color: rgba(52, 211, 153, 0.6);
+        box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.12);
+      }
+      .btn-primary {
+        width: 100%;
+        background: linear-gradient(135deg, #10b981, #06b6d4);
+        color: white;
+        font-weight: 700;
+        padding: 0.8rem 1.5rem;
+        border-radius: 0.75rem;
+        border: none;
+        cursor: pointer;
+        font-size: 1rem;
+        font-family: "Outfit", sans-serif;
+        transition: opacity 0.2s, transform 0.1s;
+      }
+      .btn-primary:hover { opacity: 0.9; }
+      .btn-primary:active { transform: scale(0.98); }
+      .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+      #toast {
+        transition: opacity 0.3s, transform 0.3s;
+      }
     </style>
   </head>
   <body
     class="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
   >
+
+    <!-- ── Toast notification ─────────────────────────────────────────── -->
     <div
-      class="max-w-7xl w-full bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-slate-700/50"
-    >
-      <div class="text-center mb-10">
-        <h1
-          class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-4 tracking-tight"
+      id="toast"
+      class="fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl text-sm font-semibold shadow-2xl opacity-0 pointer-events-none -translate-y-2"
+    ></div>
+
+    <!-- ── Auth section (shown when logged out) ───────────────────────── -->
+    <div id="auth-section" class="w-full max-w-md">
+      <div
+        class="bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-slate-700/50"
+      >
+        <!-- Branding -->
+        <div class="text-center mb-8">
+          <h1
+            class="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-2 tracking-tight"
+          >
+            ChaiCode Cinema
+          </h1>
+          <p class="text-slate-400">Sign in to book your seat</p>
+        </div>
+
+        <!-- Tab switcher -->
+        <div
+          class="flex bg-slate-900/50 rounded-2xl p-1 border border-slate-700/50 mb-8"
         >
-          ChaiCode Cinema - Now Showing<br />
-          <br />
-          <span class="text-red-400">
-            <span class="font-bold">Dhurandhar The Revenge</span>
-          </span>
-        </h1>
-        <p class="text-slate-400 text-lg">Jassi ko ghar ki yaad kyu nhi aai?</p>
+          <button
+            id="tab-login"
+            onclick="switchTab('login')"
+            class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 bg-emerald-500 text-white shadow"
+          >
+            Login
+          </button>
+          <button
+            id="tab-signup"
+            onclick="switchTab('signup')"
+            class="flex-1 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 text-slate-400 hover:text-slate-200"
+          >
+            Sign Up
+          </button>
+        </div>
+
+        <!-- Login form -->
+        <form id="login-form" onsubmit="handleLogin(event)" class="space-y-4">
+          <input class="input-field" type="email" id="login-email" placeholder="Email address" required />
+          <input class="input-field" type="password" id="login-password" placeholder="Password" required />
+          <button class="btn-primary" type="submit" id="login-btn">Sign In</button>
+        </form>
+
+        <!-- Signup form (hidden) -->
+        <form id="signup-form" onsubmit="handleSignup(event)" class="space-y-4 hidden">
+          <div class="grid grid-cols-2 gap-3">
+            <input class="input-field" type="text" id="signup-firstname" placeholder="First Name" required />
+            <input class="input-field" type="text" id="signup-lastname" placeholder="Last Name" />
+          </div>
+          <input class="input-field" type="text" id="signup-username" placeholder="Username" required />
+          <input class="input-field" type="email" id="signup-email" placeholder="Email address" required />
+          <input class="input-field" type="password" id="signup-password" placeholder="Password (min 8 chars)" minlength="8" required />
+          <button class="btn-primary" type="submit" id="signup-btn">Create Account</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ── Main section (shown when logged in) ───────────────────────── -->
+    <div id="main-section" class="max-w-7xl w-full hidden">
+
+      <!-- User bar -->
+      <div class="flex items-center justify-between mb-6 px-2">
+        <span class="text-slate-400 text-sm">
+          Logged in as
+          <span id="display-username" class="font-bold text-emerald-400 ml-1"></span>
+        </span>
+        <button
+          onclick="handleLogout()"
+          class="text-sm text-slate-400 hover:text-rose-400 transition-colors font-semibold border border-slate-700 hover:border-rose-500/50 px-4 py-1.5 rounded-xl"
+        >
+          Sign Out
+        </button>
       </div>
 
-      <div class="flex justify-center mb-10">
-        <div
-          class="bg-slate-900/50 rounded-full px-6 py-3 border border-slate-700 flex gap-8 items-center"
-        >
-          <div class="flex items-center gap-3">
-            <div
-              class="w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]"
-            ></div>
-            <span class="text-slate-300 font-medium tracking-wide"
-              >Available</span
-            >
-          </div>
-          <div class="w-px h-6 bg-slate-700"></div>
-          <div class="flex items-center gap-3">
-            <div
-              class="w-4 h-4 rounded-full bg-rose-500/20 border border-rose-500/50"
-            ></div>
-            <span class="text-slate-400 font-medium tracking-wide">Booked</span>
+      <div
+        class="bg-slate-800/80 backdrop-blur-xl rounded-3xl shadow-2xl p-10 border border-slate-700/50"
+      >
+        <!-- Movie header — identical to starter -->
+        <div class="text-center mb-10">
+          <h1
+            class="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400 mb-4 tracking-tight"
+          >
+            ChaiCode Cinema - Now Showing<br />
+            <br />
+            <span class="text-red-400">
+              <span class="font-bold">Dhurandhar The Revenge</span>
+            </span>
+          </h1>
+          <p class="text-slate-400 text-lg">Jassi ko ghar ki yaad kyu nhi aai?</p>
+        </div>
+
+        <!-- Legend — identical to starter -->
+        <div class="flex justify-center mb-10">
+          <div
+            class="bg-slate-900/50 rounded-full px-6 py-3 border border-slate-700 flex gap-8 items-center"
+          >
+            <div class="flex items-center gap-3">
+              <div
+                class="w-4 h-4 rounded-full bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.6)]"
+              ></div>
+              <span class="text-slate-300 font-medium tracking-wide">Available</span>
+            </div>
+            <div class="w-px h-6 bg-slate-700"></div>
+            <div class="flex items-center gap-3">
+              <div
+                class="w-4 h-4 rounded-full bg-rose-500/20 border border-rose-500/50"
+              ></div>
+              <span class="text-slate-400 font-medium tracking-wide">Booked</span>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="flex justify-center">
-        <div
-          class="bg-slate-900/40 p-8 rounded-2xl border border-slate-700/50 shadow-inner"
-        >
-          <table
-            id="tbl"
-            class="border-separate border-spacing-4 mx-auto"
-          ></table>
+        <!-- Seat grid — identical to starter -->
+        <div class="flex justify-center">
+          <div
+            class="bg-slate-900/40 p-8 rounded-2xl border border-slate-700/50 shadow-inner"
+          >
+            <table id="tbl" class="border-separate border-spacing-4 mx-auto"></table>
+          </div>
         </div>
       </div>
     </div>
 
     <script>
-      async function run() {
+      // ── Session helpers ──────────────────────────────────────────────
+      function getToken()    { return localStorage.getItem("bmt_token"); }
+      function getUsername() { return localStorage.getItem("bmt_username"); }
+
+      function setSession(token, username) {
+        localStorage.setItem("bmt_token", token);
+        localStorage.setItem("bmt_username", username);
+      }
+
+      function clearSession() {
+        localStorage.removeItem("bmt_token");
+        localStorage.removeItem("bmt_username");
+      }
+
+      // Decode JWT payload without a library (safe for display, not for trust)
+      function parseJwt(token) {
+        try {
+          return JSON.parse(atob(token.split(".")[1]));
+        } catch {
+          return null;
+        }
+      }
+
+      // ── UI state ─────────────────────────────────────────────────────
+      function showAuth() {
+        document.getElementById("auth-section").classList.remove("hidden");
+        document.getElementById("main-section").classList.add("hidden");
+      }
+
+      function showMain(username) {
+        document.getElementById("auth-section").classList.add("hidden");
+        document.getElementById("main-section").classList.remove("hidden");
+        document.getElementById("display-username").textContent = username;
+      }
+
+      // ── Tab switching ─────────────────────────────────────────────────
+      function switchTab(tab) {
+        const isLogin = tab === "login";
+        document.getElementById("login-form").classList.toggle("hidden", !isLogin);
+        document.getElementById("signup-form").classList.toggle("hidden", isLogin);
+
+        const activeClass   = ["bg-emerald-500", "text-white", "shadow"];
+        const inactiveClass = ["text-slate-400", "hover:text-slate-200"];
+
+        const loginTab  = document.getElementById("tab-login");
+        const signupTab = document.getElementById("tab-signup");
+
+        if (isLogin) {
+          loginTab.classList.add(...activeClass);
+          loginTab.classList.remove(...inactiveClass);
+          signupTab.classList.remove(...activeClass);
+          signupTab.classList.add(...inactiveClass);
+        } else {
+          signupTab.classList.add(...activeClass);
+          signupTab.classList.remove(...inactiveClass);
+          loginTab.classList.remove(...activeClass);
+          loginTab.classList.add(...inactiveClass);
+        }
+      }
+
+      // ── Toast notification ────────────────────────────────────────────
+      let toastTimer;
+      function showToast(message, type = "success") {
+        const toast = document.getElementById("toast");
+        clearTimeout(toastTimer);
+
+        toast.textContent = message;
+        toast.className = "fixed top-6 right-6 z-50 px-5 py-3 rounded-2xl text-sm font-semibold shadow-2xl transition-all duration-300";
+        toast.className += type === "success"
+          ? " bg-emerald-500/20 border border-emerald-500/40 text-emerald-300"
+          : " bg-rose-500/20 border border-rose-500/40 text-rose-300";
+        toast.style.opacity = "1";
+        toast.style.transform = "translateY(0)";
+        toast.style.pointerEvents = "auto";
+
+        toastTimer = setTimeout(() => {
+          toast.style.opacity = "0";
+          toast.style.transform = "translateY(-8px)";
+          toast.style.pointerEvents = "none";
+        }, 3000);
+      }
+
+      // ── Token refresh & authenticated fetch ──────────────────────────
+      async function refreshAccessToken() {
+        try {
+          const res = await fetch("/api/v1/auth/refresh/token", {
+            method: "POST",
+            credentials: "same-origin", // browser sends the httpOnly refresh token cookie automatically
+          });
+          if (!res.ok) return null;
+          const data = await res.json();
+          const token = data.data.accessToken;
+          const payload = parseJwt(token);
+          if (!payload) return null;
+          setSession(token, payload.username || getUsername());
+          return token;
+        } catch {
+          return null;
+        }
+      }
+
+      // Wraps fetch with silent token refresh on 401.
+      // Returns the Response on success, or null if the session is fully expired.
+      async function authFetch(url, options = {}) {
+        const doRequest = (token) =>
+          fetch(url, {
+            ...options,
+            headers: { ...options.headers, Authorization: `Bearer ${token}` },
+          });
+
+        let res = await doRequest(getToken());
+
+        if (res.status === 401) {
+          // Access token expired — attempt silent refresh using the httpOnly cookie
+          const newToken = await refreshAccessToken();
+          if (!newToken) {
+            // Refresh token is also gone — force the user to log in again
+            clearSession();
+            showAuth();
+            switchTab("login");
+            showToast("Session expired. Please sign in again.", "error");
+            return null;
+          }
+          // Retry the original request with the fresh token
+          res = await doRequest(newToken);
+        }
+
+        return res;
+      }
+
+      // ── Auth handlers ─────────────────────────────────────────────────
+      async function handleLogin(e) {
+        e.preventDefault();
+        const btn = document.getElementById("login-btn");
+        btn.disabled = true;
+        btn.textContent = "Signing in…";
+
+        const email    = document.getElementById("login-email").value.trim();
+        const password = document.getElementById("login-password").value;
+
+        try {
+          const res  = await fetch("/api/v1/auth/signin", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ email, password }),
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            showToast(data.message || "Login failed", "error");
+            return;
+          }
+
+          const token    = data.data.accessToken;
+          const payload  = parseJwt(token);
+          const username = payload?.username || email;
+
+          setSession(token, username);
+          showMain(username);
+          loadSeats();
+        } catch {
+          showToast("Could not reach the server", "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Sign In";
+        }
+      }
+
+      async function handleSignup(e) {
+        e.preventDefault();
+        const btn = document.getElementById("signup-btn");
+        btn.disabled = true;
+        btn.textContent = "Creating account…";
+
+        const username  = document.getElementById("signup-username").value.trim();
+        const firstName = document.getElementById("signup-firstname").value.trim();
+        const lastName  = document.getElementById("signup-lastname").value.trim() || undefined;
+        const email     = document.getElementById("signup-email").value.trim();
+        const password  = document.getElementById("signup-password").value;
+
+        try {
+          const res  = await fetch("/api/v1/auth/signup", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ username, firstName, lastName, email, password }),
+          });
+          const data = await res.json();
+
+          if (!res.ok) {
+            const msg = data.issues
+              ? data.issues.map((i) => i.message).join(", ")
+              : data.message || "Signup failed";
+            showToast(msg, "error");
+            return;
+          }
+
+          // Auto-login after signup
+          showToast("Account created! Signing you in…", "success");
+
+          const signinRes  = await fetch("/api/v1/auth/signin", {
+            method:  "POST",
+            headers: { "Content-Type": "application/json" },
+            body:    JSON.stringify({ email, password }),
+          });
+          const signinData = await signinRes.json();
+
+          if (!signinRes.ok) {
+            showToast("Account created. Please log in.", "success");
+            switchTab("login");
+            return;
+          }
+
+          const token   = signinData.data.accessToken;
+          const payload = parseJwt(token);
+          setSession(token, payload?.username || username);
+          showMain(payload?.username || username);
+          loadSeats();
+        } catch {
+          showToast("Could not reach the server", "error");
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "Create Account";
+        }
+      }
+
+      function handleLogout() {
+        // Fire and forget — if the access token is expired, authFetch will
+        // silently refresh it first so the server can revoke the refresh token too.
+        // We clear locally regardless of the server response.
+        authFetch("/api/v1/auth/signout", { method: "POST" }).catch(() => {});
+        clearSession();
+        showAuth();
+        switchTab("login");
+      }
+
+      // ── Seat grid — matches starter code, booking uses JWT ────────────
+      async function loadSeats() {
         const tbl = document.getElementById("tbl");
-        const res = await fetch("/seats");
+        tbl.innerHTML = "";
+
+        const res      = await fetch("/seats");
         const resarray = await res.json();
-        const j = resarray.sort((a, b) => a.id - b.id);
+        const j        = resarray.sort((a, b) => a.id - b.id);
+
         let tr;
         for (let i = 0; i < j.length; i++) {
           if (i % 8 === 0) tr = document.createElement("tr");
@@ -86,13 +440,13 @@
           if (j[i].isbooked) {
             td.className = `${baseClasses} bg-rose-500/10 text-rose-500/60 border border-rose-500/20 cursor-not-allowed`;
             td.innerHTML = `
-                    <span class="relative z-10">${j[i].id}</span>
-                    <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-2 bg-slate-900 border border-slate-700 text-sm text-slate-300 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap shadow-2xl z-50 pointer-events-none font-normal shadow-[0_10px_25px_rgba(0,0,0,0.5)]">
-                        Booked by: <span class="font-bold text-white ml-1">${j[i].name}</span>
-                        <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[6px] border-transparent border-t-slate-700"></div>
-                        <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-[2px] border-[5px] border-transparent border-t-slate-900"></div>
-                    </div>
-                `;
+              <span class="relative z-10">${j[i].id}</span>
+              <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-2 bg-slate-900 border border-slate-700 text-sm text-slate-300 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap shadow-2xl z-50 pointer-events-none font-normal shadow-[0_10px_25px_rgba(0,0,0,0.5)]">
+                Booked by: <span class="font-bold text-white ml-1">${j[i].name}</span>
+                <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[6px] border-transparent border-t-slate-700"></div>
+                <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-[2px] border-[5px] border-transparent border-t-slate-900"></div>
+              </div>
+            `;
           } else {
             td.className = `${baseClasses} bg-emerald-500 text-white border-2 border-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.3)] cursor-pointer hover:bg-emerald-400 hover:-translate-y-1.5 hover:shadow-[0_10px_25px_rgba(16,185,129,0.5)] active:scale-95 active:shadow-[0_0_10px_rgba(16,185,129,0.3)]`;
             td.innerHTML = `<span class="relative z-10">${j[i].id}</span>`;
@@ -100,42 +454,68 @@
 
           td.addEventListener("click", async function (e) {
             const currentTd = e.currentTarget;
-            if (currentTd.classList.contains("cursor-not-allowed")) {
-              return; // Seat is already taken
-            }
+            if (currentTd.classList.contains("cursor-not-allowed")) return;
+
+            const username = getUsername();
+            const id       = j[i].id;
+
+            // Optimistically disable the seat while the request is in flight
+            currentTd.classList.add("opacity-50", "cursor-wait");
 
             try {
-              const id = j[i].id; // Safe from loop closure
-              const name = prompt("Enter your name");
-              if (!name) return;
+              const res = await authFetch(`/${id}/${encodeURIComponent(username)}`, {
+                method: "PUT",
+              });
 
-              const res = await fetch(`/${id}/${name}`, { method: "PUT" });
+              // authFetch returns null when the session is fully expired and it
+              // has already redirected the user to the login screen
+              if (!res) return;
+
               const data = await res.json();
 
-              if (data.error) {
-                alert("FAILED! Couldn't book! already booked.");
-              } else {
-                alert("Booked successfully!");
-                // Visually transition to booked state upon success
-                currentTd.className = `${baseClasses} bg-rose-500/10 text-rose-500/60 border border-rose-500/20 cursor-not-allowed`;
-                currentTd.innerHTML = `
-                            <span class="relative z-10">${id}</span>
-                            <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-2 bg-slate-900 border border-slate-700 text-sm text-slate-300 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap shadow-2xl z-50 pointer-events-none font-normal shadow-[0_10px_25px_rgba(0,0,0,0.5)]">
-                                Booked by: <span class="font-bold text-white ml-1">${name}</span>
-                                <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[6px] border-transparent border-t-slate-700"></div>
-                                <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-[2px] border-[5px] border-transparent border-t-slate-900"></div>
-                            </div>
-                        `;
+              if (!res.ok) {
+                showToast(data.message || "Couldn't book seat", "error");
+                currentTd.classList.remove("opacity-50", "cursor-wait");
+                return;
               }
-            } catch (ex) {
-              alert("error booking " + ex);
+
+              showToast(`Seat ${id} booked!`, "success");
+
+              // Visually transition to booked state upon success
+              currentTd.className = `${baseClasses} bg-rose-500/10 text-rose-500/60 border border-rose-500/20 cursor-not-allowed`;
+              currentTd.innerHTML = `
+                <span class="relative z-10">${id}</span>
+                <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 px-4 py-2 bg-slate-900 border border-slate-700 text-sm text-slate-300 rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap shadow-2xl z-50 pointer-events-none font-normal shadow-[0_10px_25px_rgba(0,0,0,0.5)]">
+                  Booked by: <span class="font-bold text-white ml-1">${username}</span>
+                  <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-[1px] border-[6px] border-transparent border-t-slate-700"></div>
+                  <div class="absolute top-full left-1/2 -translate-x-1/2 -mt-[2px] border-[5px] border-transparent border-t-slate-900"></div>
+                </div>
+              `;
+            } catch {
+              showToast("Network error. Try again.", "error");
+              currentTd.classList.remove("opacity-50", "cursor-wait");
             }
           });
+
           tr.appendChild(td);
           tbl.appendChild(tr);
         }
       }
-      run();
+
+      // ── Init ──────────────────────────────────────────────────────────
+      function init() {
+        const token    = getToken();
+        const username = getUsername();
+
+        if (token && username) {
+          showMain(username);
+          loadSeats();
+        } else {
+          showAuth();
+        }
+      }
+
+      init();
     </script>
   </body>
 </html>
