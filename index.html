@@ -104,10 +104,6 @@
 
         <!-- Signup form (hidden) -->
         <form id="signup-form" onsubmit="handleSignup(event)" class="space-y-4 hidden">
-          <div class="grid grid-cols-2 gap-3">
-            <input class="input-field" type="text" id="signup-firstname" placeholder="First Name" required />
-            <input class="input-field" type="text" id="signup-lastname" placeholder="Last Name" />
-          </div>
           <input class="input-field" type="text" id="signup-username" placeholder="Username" required />
           <input class="input-field" type="email" id="signup-email" placeholder="Email address" required />
           <input class="input-field" type="password" id="signup-password" placeholder="Password (min 8 chars)" minlength="8" required />
@@ -358,8 +354,6 @@
         btn.textContent = "Creating account…";
 
         const username  = document.getElementById("signup-username").value.trim();
-        const firstName = document.getElementById("signup-firstname").value.trim();
-        const lastName  = document.getElementById("signup-lastname").value.trim() || undefined;
         const email     = document.getElementById("signup-email").value.trim();
         const password  = document.getElementById("signup-password").value;
 
@@ -367,7 +361,7 @@
           const res  = await fetch("/api/v1/auth/signup", {
             method:  "POST",
             headers: { "Content-Type": "application/json" },
-            body:    JSON.stringify({ username, firstName, lastName, email, password }),
+            body:    JSON.stringify({ username, email, password }),
           });
           const data = await res.json();
 
